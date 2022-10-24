@@ -1,5 +1,7 @@
 # UnzipLoops
 
+![Julia version](https://img.shields.io/badge/julia-%3E%3D%201.7-blue)
+
 This package provides one single function `broadcast_unzip(f, As...)` that works similar to `map(f,
 As...)` but outputs different data layout.
 

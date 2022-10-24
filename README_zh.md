@@ -1,5 +1,7 @@
 # UnzipLoops
 
+![Julia version](https://img.shields.io/badge/julia-%3E%3D%201.7-blue)
+
 这个包提供一个函数: `broadcast_unzip(f, As...)`.
 
 ## 一个简单的例子
