@@ -85,8 +85,8 @@ end
 """
     broadcast_unzip(f, As...)
 
-For function `f` that outputs a `Tuple`, this function works similar to `map(f, As...)` but
-outputs a `Tuple` of arrays instead of an array of `Tuple`s.
+For function `f` that outputs a `Tuple`, this function works similar to `broadcast(f,
+As...)` but outputs a `Tuple` of arrays instead of an array of `Tuple`s.
 
 # Examples
 
@@ -96,18 +96,16 @@ julia> using UnzipLoops
 julia> f(x, y) = x + y, x - y
 f (generic function with 1 method)
 
-julia> X, Y = [1, 2, 3, 4], [4, 3, 2, 1]
-([1, 2, 3, 4], [4, 3, 2, 1])
+julia> X, Y = [1, 2], [4 3]
+([1, 2], [4 3])
 
-julia> map(f, X, Y) # array of tuple
-4-element Vector{Tuple{Int64, Int64}}:
- (5, -3)
- (5, -1)
- (5, 1)
- (5, 3)
+julia> broadcast(f, X, Y) # array of tuple
+2×2 Matrix{Tuple{Int64, Int64}}:
+ (5, -3)  (4, -2)
+ (6, -2)  (5, -1)
 
 julia> broadcast_unzip(f, X, Y) # tuple of array
-([5, 5, 5, 5], [-3, -1, 1, 3])
+([5 4; 6 5], [-3 -2; -2 -1])
 ```
 """
 function broadcast_unzip(f::F, As...) where {F}
