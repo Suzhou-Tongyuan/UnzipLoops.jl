@@ -20,51 +20,41 @@ end
     end
 end
 
-@generated function _create_vecs_from_record_type(::Type{Ts}, sz) where {Ts}
-    ndim = length(sz.parameters)
+@generated function _create_vecs_from_record_type(::Type{Ts}, bc) where {Ts}
     if Ts != Tuple && Ts <: Tuple && Ts isa DataType
-        Expr(:tuple, [:(Array{$et,$ndim}(undef, sz)) for et in Ts.parameters]...)
+        Expr(:tuple, [:(similar(bc, $et)) for et in Ts.parameters]...)
     else
-        Expr(:tuple, [:(Array{Any,$ndim}(undef, sz)) for _ in 1:ndim]...)
+        Expr(:tuple, [:(similar(bc, Any)) for _ in 1:length(Ts.parameters)]...)
     end
 end
 
 @inline function _infer_record_type(f, xs)
     @static if isdefined(Core, :Compiler)
         T = Core.Compiler.return_type(f, _teltypes(Core.Typeof(xs)))
-        Base.promote_typejoin_union(T)
+        TP = Base.promote_typejoin_union(T)
+        TP <: Tuple || error("function $f must return a tuple, instead it returns $TP")
+        return TP
     else
-        Any
+        return Any
     end
 end
 
 struct GetUnzipVectors{F} end
-@inline function GetUnzipVectors{F}(@specialize(f::F), @specialize(xs::Tuple)) where {F}
+@inline function GetUnzipVectors{F}(bc) where {F}
+    xs = bc.args
     length(xs) === 0 && error("get_unzip_vectors() expects more than one array input.")
-    t = _infer_record_type(f, xs)
-    return _create_vecs_from_record_type(t, size(xs[1]))
-end
-
-@noinline function _check_size(As)
-    length(As) > 1 || error("function f should accept more than one argument.")
-    out_size = size(As[1])
-    all(isequal(out_size), size.(As)) || throw(DimensionMismatch("size must match"))
-    return Base.require_one_based_indexing(As...)
+    t = _infer_record_type(bc.f, xs)
+    return _create_vecs_from_record_type(t, bc)
 end
 
 struct _Kernel!{M,N} end
 
-@inline @generated function _Kernel!{M,N}(out, As, f) where {M,N}
-    rhs_As = [:(As[$i]) for i in 1:M]
-    lhs_As = [Symbol(:As, i) for i in 1:M]
+@inline @generated function _Kernel!{M,N}(out, bc) where {M,N}
     rhs_out = [:(out[$i]) for i in 1:N]
     lhs_out = [Symbol(:out, i) for i in 1:N]
     lhs_tmp = [Symbol(:tmp, i) for i in 1:N]
     code = Expr(:block)
 
-    for i in 1:M
-        push!(code.args, Expr(:(=), lhs_As[i], rhs_As[i]))
-    end
     for i in 1:N
         push!(code.args, Expr(:(=), lhs_out[i], rhs_out[i]))
     end
@@ -73,8 +63,8 @@ struct _Kernel!{M,N} end
     push!(
         loopblock.args,
         Expr(
-            :(=), Expr(:tuple, lhs_tmp...), Expr(:call, :f, [:($v[I]) for v in lhs_As]...)
-        ),
+            :(=), Expr(:tuple, lhs_tmp...), Expr(:call, :getindex, :bc, :I)
+        )
     )
 
     for i in 1:N
@@ -84,7 +74,7 @@ struct _Kernel!{M,N} end
     push!(
         code.args,
         quote
-            @inbounds @simd for I in eachindex(As[1])
+            @inbounds @simd for I in eachindex(bc)
                 $loopblock
             end
         end,
@@ -121,10 +111,10 @@ julia> broadcast_unzip(f, X, Y) # tuple of array
 ```
 """
 function broadcast_unzip(f::F, As...) where {F}
-    _check_size(As)
-    out = GetUnzipVectors{F}(f, As)
+    bc = Broadcast.broadcasted(f, As...)
+    out = GetUnzipVectors{F}(bc)
     M, N = length(As), length(out)
-    _Kernel!{M,N}(out, As, f)
+    _Kernel!{M,N}(out, bc)
     return out
 end
 
