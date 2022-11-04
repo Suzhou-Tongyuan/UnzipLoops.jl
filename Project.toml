@@ -1,6 +1,6 @@
 name = "UnzipLoops"
 uuid = "65164825-a06a-491c-beb8-9961b1a95625"
-version = "0.1.0"
+version = "0.1.1"
 
 [compat]
 julia = "1.7"

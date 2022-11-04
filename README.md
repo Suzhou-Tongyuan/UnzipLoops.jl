@@ -140,7 +140,7 @@ Stacktrace:
 
 This package might never exists if I had known the [MappedArrays] + [StructArrays] solutions
 provided in the [ANN post]. But it turns out this package is (a little bit) superior to those
-alternatives speaking of the performance, see benchmark results in [benchmarks].
+alternatives speaking of the performance, see benchmark results in [mydot benchmarks](benchmarks/mydot.jl).
 
 [MappedArrays]: https://github.com/JuliaArrays/MappedArrays.jl
 [StructArrays]: https://github.com/JuliaArrays/StructArrays.jl
