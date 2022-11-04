@@ -34,11 +34,19 @@ using OffsetArrays
     @test out[3] == getindex.(out_aos, 3)
     @test out[4] == getindex.(out_aos, 4)
 
-    @test_throws DimensionMismatch broadcast_unzip(+, [1, 2, 3], [4 5 6])
+    f(x) = x, x^2, x^3
+    A, B, C = broadcast_unzip(f, [1, 2, 3])
+    @test collect(zip(A, B, C)) == broadcast(f, [1, 2, 3])
 
-    # It's not supported yet, but we'd like to support generic array in the future
-    x = OffsetArray([1, 2, 3], -1)
-    msg = "offset arrays are not supported but got an array with index other than 1"
-    @test_throws ArgumentError(msg) broadcast_unzip(+, x, x)
-    @test_broken broadcast_unzip(+, x, x)
+    # mixed axes are supported
+    f(x, y) = x + y, x - y
+    A, B = broadcast_unzip(f, [1, 2, 3], [4 5 6])
+    @test collect(zip(A, B)) == broadcast(f, [1, 2, 3], [4 5 6])
+
+    # offsetted arrays
+    xo = OffsetArray([1, 2, 3], -1)
+    A, B = broadcast_unzip(f, xo, xo)
+    @test axes(A) == (0:2,)
+    @test axes(B) == (0:2,)
+    @test collect(zip(A, B)) == broadcast(f, xo, xo)
 end
