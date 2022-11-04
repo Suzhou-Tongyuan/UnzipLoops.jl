@@ -21,13 +21,13 @@ using OffsetArrays
         return Z1, Z2
     end
     Z1, Z2 = g1(X, Y)
-    Z1′, Z2′ = broadcast_unzip(f1, X, Y)
+    Z1′, Z2′ = @inferred broadcast_unzip(f1, X, Y)
     @test Z1 == Z1′
     @test Z2 == Z2′
 
     X, Y, Z = rand(1:5, 1024), rand(1:5, 1024), rand(1:5, 1024)
     f2(x, y, z) = x ^ y ^ z, x / y / z, x * y * z, x / (y*z)
-    out = broadcast_unzip(f2, X, Y, Z)
+    out = @inferred broadcast_unzip(f2, X, Y, Z)
     out_aos = map(f2, X, Y, Z)
     @test out[1] == getindex.(out_aos, 1)
     @test out[2] == getindex.(out_aos, 2)
@@ -35,17 +35,17 @@ using OffsetArrays
     @test out[4] == getindex.(out_aos, 4)
 
     f3(x) = x, x^2, x^3
-    A, B, C = broadcast_unzip(f3, [1, 2, 3])
+    A, B, C = @inferred broadcast_unzip(f3, [1, 2, 3])
     @test collect(zip(A, B, C)) == broadcast(f3, [1, 2, 3])
 
     # mixed axes are supported
     f4(x, y) = x + y, x - y
-    A, B = broadcast_unzip(f4, [1, 2, 3], [4 5 6])
+    A, B = @inferred broadcast_unzip(f4, [1, 2, 3], [4 5 6])
     @test collect(zip(A, B)) == broadcast(f4, [1, 2, 3], [4 5 6])
 
     # offsetted arrays
     xo = OffsetArray([1, 2, 3], -1)
-    A, B = broadcast_unzip(f4, xo, xo)
+    A, B = @inferred broadcast_unzip(f4, xo, xo)
     @test axes(A) == (0:2,)
     @test axes(B) == (0:2,)
     @test collect(zip(A, B)) == broadcast(f4, xo, xo)
