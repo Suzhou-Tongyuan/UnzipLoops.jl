@@ -23,6 +23,11 @@ end
 @generated function _create_vecs_from_record_type(::Type{Ts}, bc) where {Ts}
     if Ts != Tuple && Ts <: Tuple && Ts isa DataType
         Expr(:tuple, [:(similar(bc, $et)) for et in Ts.parameters]...)
+    elseif Ts <: NamedTuple
+        names, types = Ts.parameters[1], Ts.parameters[2].parameters
+        Expr(:tuple,
+            Expr(:parameters, [Expr(:kw, name, :(similar(bc, $et))) for (name, et) in zip(names, types)]...)
+        )
     else
         Expr(:tuple, [:(similar(bc, Any)) for _ in 1:length(Ts.parameters)]...)
     end
@@ -32,7 +37,7 @@ end
     @static if isdefined(Core, :Compiler)
         T = Core.Compiler.return_type(f, _teltypes(Core.Typeof(xs)))
         TP = Base.promote_typejoin_union(T)
-        TP <: Tuple || error("function $f must return a tuple, instead it returns $TP")
+        TP <: Union{Tuple,NamedTuple} || error("function $f must return a tuple, instead it returns $TP")
         return TP
     else
         return Any

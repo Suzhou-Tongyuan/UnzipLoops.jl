@@ -49,4 +49,11 @@ using OffsetArrays
     @test axes(A) == (0:2,)
     @test axes(B) == (0:2,)
     @test collect(zip(A, B)) == broadcast(f4, xo, xo)
+
+    # named tuple
+    f5(x, y) = (; a=x+y, b=x-y)
+    out = @inferred broadcast_unzip(f5, [1, 2, 3], [4 5 6])
+    @test out isa NamedTuple
+    @test out.a == map(x->x.a, broadcast(f5, [1, 2, 3], [4 5 6]))
+    @test out.b == map(x->x.b, broadcast(f5, [1, 2, 3], [4 5 6]))
 end
